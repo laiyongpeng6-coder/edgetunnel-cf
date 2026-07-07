@@ -62,6 +62,195 @@ export default {
 					目标前8总和 += 目标码 <= 57 ? 目标码 - 48 : 目标码 - 87;
 				}
 				if (请求前8总和 === 目标前8总和 && 请求UUID.slice(-12) === 目标UUID.slice(-12)) return new Response(JSON.stringify({ Version: Number(String(Version).replace(/\D+/g, '')) }), { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
+			// Dashboard: serve index.html at /
+			if (url.pathname === '/' || url.pathname === '/index.html') {
+				return new Response(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>用户管理后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:#1e293b;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155}
+.header h1{font-size:20px;color:#38bdf8}
+.header .stats{display:flex;gap:20px;font-size:14px;color:#94a3b8}
+.header .stats span{color:#38bdf8;font-weight:600}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.card{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #334155}
+.card h2{font-size:16px;color:#38bdf8;margin-bottom:16px}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:12px;color:#94a3b8}
+.form-group input{background:#0f172a;border:1px solid #475569;border-radius:8px;padding:8px 12px;color:#e2e8f0;font-size:14px;min-width:120px}
+.form-group input:focus{outline:none;border-color:#38bdf8}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:500}
+.btn-primary{background:#38bdf8;color:#0f172a}.btn-primary:hover{background:#7dd3fc}
+.btn-danger{background:#ef4444;color:#fff}.btn-danger:hover{background:#f87171}
+.btn-sm{padding:4px 10px;font-size:12px;border-radius:6px}
+.btn-outline{background:transparent;border:1px solid #475569;color:#94a3b8}.btn-outline:hover{border-color:#38bdf8;color:#38bdf8}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:10px 12px;color:#94a3b8;border-bottom:1px solid #334155;font-size:12px}
+td{padding:10px 12px;border-bottom:1px solid #1e293b}
+tr:hover td{background:rgba(56,189,248,0.05)}
+.badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-ok{background:#064e3b;color:#34d399}
+.badge-expired{background:#7f1d1d;color:#fca5a5}
+.badge-disabled{background:#78350f;color:#fbbf24}
+.token-link{color:#38bdf8;text-decoration:none;font-size:12px;word-break:break-all}
+.copy-btn{cursor:pointer;color:#94a3b8;font-size:12px;margin-left:4px}.copy-btn:hover{color:#38bdf8}
+.progress{width:100%;height:6px;background:#334155;border-radius:3px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:3px}
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:14px;z-index:200}
+.toast-ok{background:#064e3b;color:#34d399;border:1px solid #059669}
+.toast-err{background:#7f1d1d;color:#fca5a5;border:1px solid #dc2626}
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:none;justify-content:center;align-items:center;z-index:100}
+.modal-bg.show{display:flex}
+.modal{background:#1e293b;border-radius:12px;padding:24px;width:90%;max-width:500px;border:1px solid #334155}
+.modal h3{color:#38bdf8;margin-bottom:16px}
+.modal .form-group{margin-bottom:12px}.modal .form-group input{width:100%}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.empty{text-align:center;color:#64748b;padding:40px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 用户管理后台</h1>
+  <div class="stats">总用户: <span id="sTotal">-</span> | 启用: <span id="sActive">-</span> | 禁用: <span id="sDisabled">-</span></div>
+</div>
+<div class="container">
+  <div class="card">
+    <h2>➕ 新增用户</h2>
+    <div class="form-row">
+      <div class="form-group"><label>用户名</label><input id="nName" placeholder="张三"></div>
+      <div class="form-group"><label>月流量(GB)</label><input id="nGB" type="number" value="50" min="0"></div>
+      <div class="form-group"><label>有效期(天)</label><input id="nDays" type="number" value="30" min="0"></div>
+      <div class="form-group"><label>备注</label><input id="nNote" placeholder="可选"></div>
+      <button class="btn btn-primary" onclick="doCreate()">创建</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>👥 用户列表</h2>
+    <div id="table"><div class="empty">加载中...</div></div>
+  </div>
+</div>
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3>编辑用户</h3>
+    <input type="hidden" id="eId">
+    <div class="form-group"><label>用户名</label><input id="eName"></div>
+    <div class="form-group"><label>月流量(GB, 0=无限)</label><input id="eGB" type="number" min="0"></div>
+    <div class="form-group"><label>有效期(天, 0=永不过期)</label><input id="eDays" type="number" min="0"></div>
+    <div class="form-group"><label>备注</label><input id="eNote"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doSave()">保存</button>
+    </div>
+  </div>
+</div>
+<script>
+let users=[];
+
+async function api(p,body){
+  const o=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
+  const r=await fetch('/mu/admin/'+p,o);
+  if(r.status===401){document.getElementById('table').innerHTML='<div class="empty"><h3 style="color:#f87171">需要登录</h3><p>请先访问 <a href="/admin" style="color:#38bdf8">/admin</a> 登录后刷新此页</p></div>';return null;}
+  return r.json();
+}
+
+function toast(m,ok){const t=document.createElement('div');t.className='toast '+(ok?'toast-ok':'toast-err');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+function fmtB(b){if(!b)return'0 B';const u=['B','KB','MB','GB','TB'];const i=Math.floor(Math.log(b)/Math.log(1024));return(b/Math.pow(1024,i)).toFixed(2)+' '+u[i];}
+function fmtD(d){if(!d)return'永不过期';return new Date(d).toLocaleDateString('zh-CN');}
+function st(u){if(!u.enabled)return'<span class="badge badge-disabled">已禁用</span>';if(u.expires_at&&new Date(u.expires_at)<new Date())return'<span class="badge badge-expired">已过期</span>';return'<span class="badge badge-ok">正常</span>';}
+function cp(t){navigator.clipboard.writeText(t).then(()=>toast('已复制',true));}
+
+async function load(){
+  const d=await api('allUsers');
+  if(!d||!d.success)return;
+  users=d.users||[];
+  document.getElementById('sTotal').textContent=users.length;
+  document.getElementById('sActive').textContent=users.filter(u=>u.enabled).length;
+  document.getElementById('sDisabled').textContent=users.filter(u=>!u.enabled).length;
+  if(!users.length){document.getElementById('table').innerHTML='<div class="empty">暂无用户</div>';return;}
+  let h='<table><thead><tr><th>状态</th><th>用户名</th><th>订阅链接</th><th>额度</th><th>已用</th><th>到期</th><th>操作</th></tr></thead><tbody>';
+  for(const u of users){
+    const used=u.used_bytes||0;const total=u.monthly_bytes||0;
+    const pct=total>0?Math.min(100,(used/total)*100):0;
+    const bc=pct>90?'#ef4444':pct>70?'#f59e0b':'#22c55e';
+    const sub=location.origin+'/sub/'+u.token;
+    h+='<tr><td>'+st(u)+'</td>';
+    h+='<td><strong>'+(u.name||u.id)+'</strong>'+(u.note?'<br><small style="color:#64748b">'+u.note+'</small>':'')+'</td>';
+    h+='<td><a class="token-link" href="'+sub+'" target="_blank">'+u.token.substring(0,12)+'...</a> <span class="copy-btn" onclick="cp(\\\\''+sub+'\\\\')">📋</span></td>';
+    h+='<td>'+(total>0?fmtB(total):'无限')+'</td>';
+    h+='<td>'+fmtB(used)+(total>0?'<div class="progress"><div class="progress-fill" style="width:'+pct+'%;background:'+bc+'"></div></div>':'')+'</td>';
+    h+='<td style="font-size:12px">'+fmtD(u.expires_at)+'</td>';
+    h+='<td style="white-space:nowrap">';
+    h+='<button class="btn btn-outline btn-sm" onclick="doEdit(\\\\''+u.id+'\\\\')">✏️</button> ';
+    h+='<button class="btn btn-outline btn-sm" onclick="doToggle(\\\\''+u.id+'\\\\')">'+(u.enabled?'⏸':'▶️')+'</button> ';
+    h+='<button class="btn btn-danger btn-sm" onclick="doDel(\\\\''+u.id+'\\\\',\\\\''+(u.name||u.id)+'\\\\')">🗑️</button>';
+    h+='</td></tr>';
+  }
+  h+='</tbody></table>';
+  document.getElementById('table').innerHTML=h;
+}
+
+async function doCreate(){
+  const name=document.getElementById('nName').value.trim();
+  if(!name){toast('请输入用户名',false);return;}
+  const gb=parseFloat(document.getElementById('nGB').value)||0;
+  const days=parseInt(document.getElementById('nDays').value)||0;
+  const note=document.getElementById('nNote').value.trim();
+  const expires_at=days>0?new Date(Date.now()+days*86400000).toISOString():null;
+  const r=await api('createUser',{name,monthly_gb:gb,expires_at,note});
+  if(r&&r.success){toast('创建成功',true);document.getElementById('nName').value='';document.getElementById('nNote').value='';load();}
+  else toast('创建失败',false);
+}
+
+function doEdit(id){
+  const u=users.find(x=>x.id===id);if(!u)return;
+  document.getElementById('eId').value=u.id;
+  document.getElementById('eName').value=u.name||'';
+  document.getElementById('eGB').value=u.monthly_bytes?(u.monthly_bytes/1073741824):0;
+  document.getElementById('eNote').value=u.note||'';
+  if(u.expires_at){document.getElementById('eDays').value=Math.max(0,Math.ceil((new Date(u.expires_at)-new Date())/86400000));}
+  else{document.getElementById('eDays').value=0;}
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+async function doSave(){
+  const id=document.getElementById('eId').value;
+  const gb=parseFloat(document.getElementById('eGB').value)||0;
+  const days=parseInt(document.getElementById('eDays').value)||0;
+  const name=document.getElementById('eName').value.trim();
+  const note=document.getElementById('eNote').value.trim();
+  const expires_at=days>0?new Date(Date.now()+days*86400000).toISOString():null;
+  const r=await api('updateUser',{user_id:id,monthly_gb:gb,expires_at,name,note});
+  if(r&&r.success){toast('保存成功',true);closeModal();load();}
+  else toast('保存失败',false);
+}
+
+async function doToggle(id){
+  const r=await api('toggleUser',{user_id:id});
+  if(r&&r.success){toast(r.user.enabled?'已启用':'已禁用',true);load();}
+  else toast('操作失败',false);
+}
+
+async function doDel(id,name){
+  if(!confirm('确定删除 "'+name+'" ？'))return;
+  const r=await api('deleteUser',{user_id:id});
+  if(r&&r.success){toast('已删除',true);load();}
+  else toast('删除失败',false);
+}
+
+load();
+</script>
+</body>
+</html>
+`, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
+			}
+
 			}
 		} else if (管理员密码 && upgradeHeader === 'websocket') {// WebSocket代理
 			await 反代参数获取(url, userID);
