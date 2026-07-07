@@ -105,6 +105,7 @@ async function mu_uuidValid(env, uuid) {
     return _mu_valid_uuids_cache.includes(uuid);
   } catch(e) { return false; }
 }
+
 export default {
 	async fetch(request, env, ctx) {
 		let 请求URL文本 = request.url.replace(/%5[Cc]/g, '').replace(/\\/g, '');
