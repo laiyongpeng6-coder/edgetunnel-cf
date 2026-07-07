@@ -434,17 +434,17 @@ export default {
 							const total = Number.isFinite(config_JSON.CF.Usage.max) ? (config_JSON.CF.Usage.max / 1000) * 1024 : 1024 * 100;
 							responseHeaders["Subscription-Userinfo"] = `upload=${pagesSum}; download=${workersSum}; total=${total}; expire=4102329600`; // 2099-12-31 到期时间
 						}
-						const 实际客户端类型 = url.searchParams.has('clash') || ua.includes('clash') || ua.includes('meta') || ua.includes('mihomo') ? 'clash' : url.searchParams.has('sb') || url.searchParams.has('singbox') || ua.includes('singbox') || ua.includes('sing-box') ? 'singbox' : url.searchParams.has('surge') || ua.includes('surge') ? 'surge&ver=4' : url.searchParams.has('quanx') || ua.includes('quantumult') ? 'quanx' : 'mixed';
-						const isSubConverterRequest = url.searchParams.has('b64') || url.searchParams.has('base64') || request.headers.get('subconverter-request') || request.headers.get('subconverter-version') || ua.includes('subconverter') || ua.includes(('CF-Workers-SUB').toLowerCase()) || ua.includes('clash') || ua.includes('meta') || ua.includes('mihomo') || 作为优选订阅生成器;
+						const 实际客户端类型 = url.searchParams.has('clash') || ua.toLowerCase().includes('clash') || ua.toLowerCase().includes('meta') || ua.toLowerCase().includes('mihomo') ? 'clash' : url.searchParams.has('sb') || url.searchParams.has('singbox') || ua.toLowerCase().includes('singbox') || ua.toLowerCase().includes('sing-box') ? 'singbox' : url.searchParams.has('surge') || ua.toLowerCase().includes('surge') ? 'surge&ver=4' : url.searchParams.has('quanx') || ua.includes('quantumult') ? 'quanx' : 'mixed';
+						const isSubConverterRequest = url.searchParams.has('b64') || url.searchParams.has('base64') || request.headers.get('subconverter-request') || request.headers.get('subconverter-version') || ua.toLowerCase().includes('subconverter') || ua.includes(('CF-Workers-SUB').toLowerCase()) || ua.toLowerCase().includes('clash') || ua.toLowerCase().includes('meta') || ua.toLowerCase().includes('mihomo') || 作为优选订阅生成器;
 						const 订阅类型 = isSubConverterRequest
 							? 'mixed'
 							: url.searchParams.has('target')
 								? url.searchParams.get('target')
-								: url.searchParams.has('clash') || ua.includes('clash') || ua.includes('meta') || ua.includes('mihomo')
+								: url.searchParams.has('clash') || ua.toLowerCase().includes('clash') || ua.toLowerCase().includes('meta') || ua.toLowerCase().includes('mihomo')
 									? 'clash'
-									: url.searchParams.has('sb') || url.searchParams.has('singbox') || ua.includes('singbox') || ua.includes('sing-box')
+									: url.searchParams.has('sb') || url.searchParams.has('singbox') || ua.toLowerCase().includes('singbox') || ua.toLowerCase().includes('sing-box')
 										? 'singbox'
-										: url.searchParams.has('surge') || ua.includes('surge')
+										: url.searchParams.has('surge') || ua.toLowerCase().includes('surge')
 											? 'surge&ver=4'
 											: url.searchParams.has('quanx') || ua.includes('quantumult')
 												? 'quanx'
@@ -452,8 +452,8 @@ export default {
 													? 'loon'
 													: 'mixed';
 
-						if (!ua.includes('mozilla')) responseHeaders["Content-Disposition"] = `attachment; filename*=utf-8''${encodeURIComponent(config_JSON.优选订阅生成.SUBNAME)}`;
-						const 协议类型 = ((url.searchParams.has('surge') || ua.includes('surge')) && config_JSON.协议类型 !== 'ss') ? 'tro' + 'jan' : config_JSON.协议类型;
+						if (!ua.toLowerCase().includes('mozilla')) responseHeaders["Content-Disposition"] = `attachment; filename*=utf-8''${encodeURIComponent(config_JSON.优选订阅生成.SUBNAME)}`;
+						const 协议类型 = ((url.searchParams.has('surge') || ua.toLowerCase().includes('surge')) && config_JSON.协议类型 !== 'ss') ? 'tro' + 'jan' : config_JSON.协议类型;
 						let 订阅内容 = '';
 						if (订阅类型 === 'mixed') {
 							const TLS分片参数 = config_JSON.TLS分片 == 'Shadowrocket' ? `&fragment=${encodeURIComponent('1,40-60,30-50,tlshello')}` : config_JSON.TLS分片 == 'Happ' ? `&fragment=${encodeURIComponent('3,1,tlshello')}` : '';
@@ -505,7 +505,7 @@ export default {
 								其他节点LINK += 优选生成器其他节点;
 							}
 							const ECHLINK参数 = config_JSON.ECH ? `&ech=${encodeURIComponent((config_JSON.ECHConfig.SNI ? config_JSON.ECHConfig.SNI + '+' : '') + config_JSON.ECHConfig.DNS)}` : '';
-							const isLoonOrSurge = ua.includes('loon') || ua.includes('surge');
+							const isLoonOrSurge = ua.includes('loon') || ua.toLowerCase().includes('surge');
 							const { type: 传输协议, 路径字段名, 域名字段名 } = 获取传输协议配置(config_JSON);
 							订阅内容 = 其他节点LINK + 完整优选IP.map(原始地址 => {
 								// 统一正则: 匹配 域名/IPv4/IPv6地址 + 可选端口 + 可选备注
@@ -566,14 +566,14 @@ export default {
 								const response = await fetch(订阅转换URL, { headers: { 'User-Agent': 'Subconverter for ' + 订阅类型 + ' edge' + 'tunnel (https://github.com/' + 特征码字典[1] + '/edge' + 'tunnel)' } });
 								if (response.ok) {
 									订阅内容 = await response.text();
-									if (url.searchParams.has('surge') || ua.includes('surge')) 订阅内容 = Surge订阅配置文件热补丁(订阅内容, url.protocol + '//' + url.host + '/sub?token=' + 订阅TOKEN + '&surge', config_JSON);
+									if (url.searchParams.has('surge') || ua.toLowerCase().includes('surge')) 订阅内容 = Surge订阅配置文件热补丁(订阅内容, url.protocol + '//' + url.host + '/sub?token=' + 订阅TOKEN + '&surge', config_JSON);
 								} else return new Response('订阅转换后端异常：' + response.statusText, { status: response.status });
 							} catch (error) {
 								return new Response('订阅转换后端异常：' + error.message, { status: 403 });
 							}
 						}
 
-						if (!ua.includes('subconverter') && 用户客户端请求订阅) {
+						if (!ua.toLowerCase().includes('subconverter') && 用户客户端请求订阅) {
 							const 打乱后HOSTS = [...config_JSON.HOSTS].sort(() => Math.random() - 0.5);
 							let 替换域名计数 = 0, 当前随机HOST = null;
 							订阅内容 = 订阅内容
@@ -589,7 +589,7 @@ export default {
 								});
 						}
 
-						if (订阅类型 === 'mixed' && (!ua.includes('mozilla') || url.searchParams.has('b64') || url.searchParams.has('base64'))) 订阅内容 = btoa(订阅内容);
+						if (订阅类型 === 'mixed' && (!ua.toLowerCase().includes('mozilla') || url.searchParams.has('b64') || url.searchParams.has('base64'))) 订阅内容 = btoa(订阅内容);
 
 						if (订阅类型 === 'singbox') {
 							订阅内容 = await Singbox订阅配置文件热补丁(订阅内容, config_JSON);
