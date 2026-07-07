@@ -437,7 +437,7 @@ export default {
 						const 实际客户端类型 = url.searchParams.has('clash') || ua.toLowerCase().includes('clash') || ua.toLowerCase().includes('meta') || ua.toLowerCase().includes('mihomo') ? 'clash' : url.searchParams.has('sb') || url.searchParams.has('singbox') || ua.toLowerCase().includes('singbox') || ua.toLowerCase().includes('sing-box') ? 'singbox' : url.searchParams.has('surge') || ua.toLowerCase().includes('surge') ? 'surge&ver=4' : url.searchParams.has('quanx') || ua.includes('quantumult') ? 'quanx' : 'mixed';
 						const isSubConverterRequest = url.searchParams.has('b64') || url.searchParams.has('base64') || request.headers.get('subconverter-request') || request.headers.get('subconverter-version') || ua.toLowerCase().includes('subconverter') || ua.includes(('CF-Workers-SUB').toLowerCase()) || ua.toLowerCase().includes('clash') || ua.toLowerCase().includes('meta') || ua.toLowerCase().includes('mihomo') || 作为优选订阅生成器;
 						const 订阅类型 = isSubConverterRequest
-							? 'mixed'
+							? 实际客户端类型
 							: url.searchParams.has('target')
 								? url.searchParams.get('target')
 								: url.searchParams.has('clash') || ua.toLowerCase().includes('clash') || ua.toLowerCase().includes('meta') || ua.toLowerCase().includes('mihomo')
