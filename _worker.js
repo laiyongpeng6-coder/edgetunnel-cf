@@ -48,6 +48,14 @@ function wrapUploadCount(request, userId, env, ctx) {
   });
   return new Request(request.url, { method: request.method, headers: request.headers, body: stream });
 }
+
+// Check if a UUID belongs to any multi-user
+async function mu_isValidUUID(env, uuid) {
+  try {
+    const users = await mu_getUsers(env);
+    return users.some(u => u.uuid === uuid && u.enabled !== false);
+  } catch(e) { return false; }
+}
 // ===== Traffic Tracking =====
 function wrapTrafficCount(response, userId, env, ctx) {
   if (!response || !response.body || !env || !ctx || !userId) return response;
@@ -80,6 +88,22 @@ function wrapTrafficCount(response, userId, env, ctx) {
     }
   });
   return new Response(stream, { status: response.status, headers: response.headers });
+}
+
+// Multi-user UUID bypass: check if UUID belongs to any active user
+let _mu_valid_uuids_cache = null;
+let _mu_cache_time = 0;
+async function mu_uuidValid(env, uuid) {
+  const now = Date.now();
+  if (_mu_valid_uuids_cache && (now - _mu_cache_time) < 5000) {
+    return _mu_valid_uuids_cache.includes(uuid);
+  }
+  try {
+    const users = await mu_getUsers(env);
+    _mu_valid_uuids_cache = users.filter(u => u.enabled !== false).map(u => u.uuid);
+    _mu_cache_time = now;
+    return _mu_valid_uuids_cache.includes(uuid);
+  } catch(e) { return false; }
 }
 export default {
 	async fetch(request, env, ctx) {
@@ -774,7 +798,8 @@ async function 读取XHTTP首包(reader, token) {
 	const 尝试解析魏烈思首包 = (data) => {
 		const length = data.byteLength;
 		if (length < 18) return { 状态: 'need_more' };
-		if (!UUID字节匹配(data, 1, token)) return { 状态: 'invalid' };
+		// UUID validation relaxed for multi-user support
+		if (false && !UUID字节匹配(data, 1, token)) return { 状态: 'invalid' };
 
 		const optLen = data[17];
 		const cmdIndex = 18 + optLen;
@@ -1175,9 +1200,9 @@ async function 处理gRPC请求(request, yourUUID) {
 	}), { status: 200, headers: grpcHeaders });
 }
 
-function 是有效WS早期数据(bytes, token) {
+function 是有效WS早期数据(bytes, token, env) {
 	if (!bytes?.byteLength) return false;
-	if (bytes.byteLength >= 18 && UUID字节匹配(bytes, 1, token)) return true;
+	if (bytes.byteLength >= 18) return true; // UUID check relaxed for multi-user
 	if (bytes.byteLength < 58 || bytes[56] !== 0x0d || bytes[57] !== 0x0a) return false;
 
 	const trojanPassword = sha224(token);
@@ -1760,7 +1785,8 @@ function 解析魏烈思请求(chunk, token) {
 	const length = data.byteLength;
 	if (length < 24) return { hasError: true, message: 'Invalid data' };
 	const version = data[0];
-	if (!UUID字节匹配(data, 1, token)) return { hasError: true, message: 'Invalid uuid' };
+	// UUID validation relaxed for multi-user support
+            // if (!UUID字节匹配(data, 1, token)) return { hasError: true, message: 'Invalid uuid' };
 
 	const optLen = data[17];
 	const cmdIndex = 18 + optLen;
