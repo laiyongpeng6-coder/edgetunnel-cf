@@ -106,6 +106,44 @@ async function mu_uuidValid(env, uuid) {
   } catch(e) { return false; }
 }
 
+
+function vlessToClashYaml(vlessLinks) {
+  const lines = vlessLinks.split('\n').filter(function(l) { return l.startsWith('vless://'); });
+  const proxies = lines.map(function(link) {
+    try {
+      const decoded = decodeURIComponent(link);
+      const m = decoded.match(/^vless:\/\/([^@]+)@([^:]+):(\d+)\?(.+)#(.+)$/);
+      if (!m) return null;
+      const uuid = m[1], server = m[2], port = m[3], params = m[4], name = m[5];
+      const type = (params.match(/type=(\w+)/) || [,'ws'])[1];
+      const sni = (params.match(/sni=([^&]+)/) || [,''])[1] || server;
+      const host = (params.match(/host=([^&]+)/) || [,''])[1] || server;
+      const path = (params.match(/path=([^&]+)/) || [,'/'])[1];
+      const fp = (params.match(/fp=([^&]+)/) || [,'chrome'])[1];
+      return { name: decodeURIComponent(name), type: 'vless', server: server, port: parseInt(port), uuid: uuid, tls: params.includes('security=tls'), udp: true, servername: sni, network: type, wsOpts: type === 'ws' ? { path: decodeURIComponent(path), headers: { Host: host } } : undefined, fp: fp };
+    } catch(e) { return null; }
+  }).filter(Boolean);
+  if (proxies.length === 0) return null;
+  const names = proxies.map(function(p) { return p.name; });
+  let yaml = 'mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\nproxies:\n';
+  proxies.forEach(function(p) {
+    yaml += '  - name: ' + JSON.stringify(p.name) + '\n';
+    yaml += '    type: vless\n    server: ' + p.server + '\n    port: ' + p.port + '\n';
+    yaml += '    uuid: ' + p.uuid + '\n    tls: ' + p.tls + '\n    udp: true\n';
+    yaml += '    servername: ' + p.servername + '\n    network: ' + p.network + '\n';
+    if (p.wsOpts) yaml += '    ws-opts:\n      path: ' + JSON.stringify(p.wsOpts.path) + '\n      headers:\n        Host: ' + p.wsOpts.headers.Host + '\n';
+    yaml += '    client-fingerprint: ' + p.fp + '\n';
+  });
+  yaml += 'proxy-groups:\n  - name: AUTO\n    type: url-test\n    proxies:\n';
+  names.forEach(function(n) { yaml += '      - ' + JSON.stringify(n) + '\n'; });
+  yaml += '    url: http://www.gstatic.com/generate_204\n    interval: 300\n';
+  yaml += '  - name: GLOBAL\n    type: select\n    proxies:\n      - AUTO\n';
+  names.forEach(function(n) { yaml += '      - ' + JSON.stringify(n) + '\n'; });
+  yaml += 'rules:\n  - MATCH,GLOBAL\n';
+  return yaml;
+}
+
+
 export default {
 	async fetch(request, env, ctx) {
 		let 请求URL文本 = request.url.replace(/%5[Cc]/g, '').replace(/\\/g, '');
@@ -569,7 +607,14 @@ export default {
 									if (url.searchParams.has('surge') || ua.toLowerCase().includes('surge')) 订阅内容 = Surge订阅配置文件热补丁(订阅内容, url.protocol + '//' + url.host + '/sub?token=' + 订阅TOKEN + '&surge', config_JSON);
 								} else return new Response('订阅转换后端异常：' + response.statusText, { status: response.status });
 							} catch (error) {
-								return new Response('订阅转换后端异常：' + error.message, { status: 403 });
+								// SUBAPI failed, use local generator
+								const localYaml = vlessToClashYaml(订阅内容);
+								if (localYaml) {
+									订阅内容 = localYaml;
+									responseHeaders['content-type'] = 'application/x-yaml; charset=utf-8';
+								} else {
+									return new Response('订阅转换后端异常：' + error.message, { status: 403 });
+								}
 							}
 						}
 
