@@ -6245,7 +6245,7 @@ loadUsers();
 
 
   // --- All Users (full data for dashboard) ---
-  if (path === 'mu/admin/allUsers' && request.method === 'GET') {
+  if (path === 'mu/admin/allusers' && request.method === 'GET') {
     const users = await mu_getUsers(env);
     const month = new Date().toISOString().slice(0, 7);
     const usersWithData = await Promise.all(users.map(async u => {
@@ -6257,7 +6257,7 @@ loadUsers();
   // --- 用户列表 ---
 
   // --- 创建用户 ---
-  if (path === 'mu/admin/createUser' && request.method === 'POST') {
+  if (path === 'mu/admin/createuser' && request.method === 'POST') {
     try {
       const body = await request.json();
       const { name, monthly_gb, expires_at, note, custom_uuid } = body;
@@ -6295,7 +6295,7 @@ loadUsers();
   }
 
   // --- 获取用户详情（含完整 token）---
-  if (path === 'mu/admin/getUser' && request.method === 'GET') {
+  if (path === 'mu/admin/getuser' && request.method === 'GET') {
     const userId = new URL(request.url).searchParams.get('user_id');
     if (!userId) return mu_jsonResponse({ error: '缺少 user_id 参数' }, 400);
     const user = await mu_getUser(env, userId);
@@ -6311,7 +6311,7 @@ loadUsers();
   }
 
   // --- 启用/禁用用户 ---
-  if (path === 'mu/admin/toggleUser' && request.method === 'POST') {
+  if (path === 'mu/admin/toggleuser' && request.method === 'POST') {
     const { user_id } = await request.json();
     const users = await mu_getUsers(env);
     const user = users.find(u => u.id === user_id);
@@ -6329,7 +6329,7 @@ loadUsers();
   }
 
   // --- 修改用户额度/过期时间 ---
-  if (path === 'mu/admin/updateUser' && request.method === 'POST') {
+  if (path === 'mu/admin/updateuser' && request.method === 'POST') {
     try {
       const body = await request.json();
       const { user_id, name, monthly_gb, expires_at, note } = body;
@@ -6352,7 +6352,7 @@ loadUsers();
   }
 
   // --- 删除用户 ---
-  if (path === 'mu/admin/deleteUser' && request.method === 'POST') {
+  if (path === 'mu/admin/deleteuser' && request.method === 'POST') {
     const { user_id } = await request.json();
     let users = await mu_getUsers(env);
     const user = users.find(u => u.id === user_id);
@@ -6366,7 +6366,7 @@ loadUsers();
   }
 
   // --- 查询用户流量 ---
-  if (path === 'mu/admin/userTraffic' && request.method === 'GET') {
+  if (path === 'mu/admin/usertraffic' && request.method === 'GET') {
     const reqUrl = new URL(request.url);
     const userId = reqUrl.searchParams.get('user_id');
     const month = reqUrl.searchParams.get('month') || mu_currentMonth();
@@ -6396,7 +6396,7 @@ loadUsers();
   }
 
   // --- 批量查询所有用户本月流量 ---
-  if (path === 'mu/admin/allTraffic' && request.method === 'GET') {
+  if (path === 'mu/admin/alltraffic' && request.method === 'GET') {
     const month = new URL(request.url).searchParams.get('month') || mu_currentMonth();
     const users = await mu_getUsers(env);
     const result = [];
