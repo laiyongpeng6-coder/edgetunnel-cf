@@ -107,6 +107,11 @@ export default {
 					const authCookie = cookies.split(';').find(c => c.trim().startsWith('auth='))?.split('=')[1];
 					// 没有cookie或cookie错误，跳转到/login页面
 					if (!authCookie || authCookie !== await MD5MD5(UA + 加密秘钥 + 管理员密码)) return new Response('重定向中...', { status: 302, headers: { 'Location': '/login' } });
+					// mu admin API - auth已通过，交给mu_adminAPI处理
+					if (访问路径.startsWith('mu/admin/') || 访问路径.startsWith('mu/')) {
+						const muR = await mu_adminAPI(访问路径, request, env);
+						if (muR) return muR;
+					}
 					if (访问路径 === 'admin/log.json') {// 读取日志内容
 						const 读取日志内容 = await env.KV.get('log.json') || '[]';
 						return new Response(读取日志内容, { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
