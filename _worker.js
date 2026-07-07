@@ -6111,7 +6111,7 @@ async function mu_recordTraffic(env, uuid, uploadBytes = 0, downloadBytes = 0) {
 async function mu_adminAPI(path, request, env) {
   // --- Dashboard HTML ---
   // --- All Users (full data for dashboard) ---
-  if (path === 'mu/admin/allusers' && request.method === 'GET') {
+  if (path === 'mu/admin/allUsers' && request.method === 'GET') {
     const users = await mu_getUsers(env);
     const month = new Date().toISOString().slice(0, 7);
     const usersWithData = await Promise.all(users.map(async u => {
@@ -6121,17 +6121,9 @@ async function mu_adminAPI(path, request, env) {
     return mu_jsonResponse({ success: true, users: usersWithData });
   }
   // --- 用户列表 ---
-    const users = await mu_getUsers(env);
-    // 返回时去掉 token，安全考虑
-    const safeUsers = users.map(u => ({
-      ...u,
-      token: u.token.slice(0, 8) + '****'
-    }));
-    return mu_jsonResponse({ success: true, data: safeUsers, count: users.length });
-  }
 
   // --- 创建用户 ---
-  if (path === 'mu/admin/createuser' && request.method === 'POST') {
+  if (path === 'mu/admin/createUser' && request.method === 'POST') {
     try {
       const body = await request.json();
       const { name, monthly_gb, expires_at, note, custom_uuid } = body;
@@ -6169,7 +6161,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 获取用户详情（含完整 token）---
-  if (path === 'mu/admin/getuser' && request.method === 'GET') {
+  if (path === 'mu/admin/getUser' && request.method === 'GET') {
     const userId = new URL(request.url).searchParams.get('user_id');
     if (!userId) return mu_jsonResponse({ error: '缺少 user_id 参数' }, 400);
     const user = await mu_getUser(env, userId);
@@ -6185,7 +6177,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 启用/禁用用户 ---
-  if (path === 'mu/admin/toggleuser' && request.method === 'POST') {
+  if (path === 'mu/admin/toggleUser' && request.method === 'POST') {
     const { user_id } = await request.json();
     const users = await mu_getUsers(env);
     const user = users.find(u => u.id === user_id);
@@ -6203,7 +6195,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 修改用户额度/过期时间 ---
-  if (path === 'mu/admin/updateuser' && request.method === 'POST') {
+  if (path === 'mu/admin/updateUser' && request.method === 'POST') {
     try {
       const body = await request.json();
       const { user_id, name, monthly_gb, expires_at, note } = body;
@@ -6226,7 +6218,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 删除用户 ---
-  if (path === 'mu/admin/deleteuser' && request.method === 'POST') {
+  if (path === 'mu/admin/deleteUser' && request.method === 'POST') {
     const { user_id } = await request.json();
     let users = await mu_getUsers(env);
     const user = users.find(u => u.id === user_id);
@@ -6240,7 +6232,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 查询用户流量 ---
-  if (path === 'mu/admin/usertraffic' && request.method === 'GET') {
+  if (path === 'mu/admin/userTraffic' && request.method === 'GET') {
     const reqUrl = new URL(request.url);
     const userId = reqUrl.searchParams.get('user_id');
     const month = reqUrl.searchParams.get('month') || mu_currentMonth();
@@ -6270,7 +6262,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 批量查询所有用户本月流量 ---
-  if (path === 'mu/admin/alltraffic' && request.method === 'GET') {
+  if (path === 'mu/admin/allTraffic' && request.method === 'GET') {
     const month = new URL(request.url).searchParams.get('month') || mu_currentMonth();
     const users = await mu_getUsers(env);
     const result = [];
