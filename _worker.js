@@ -6300,7 +6300,7 @@ async function mu_recordTraffic(env, uuid, uploadBytes = 0, downloadBytes = 0) {
 async function mu_adminAPI(path, request, env) {
   // --- Dashboard HTML ---
   // --- All Users (full data for dashboard) ---
-  if (path === 'mu/admin/allUsers' && request.method === 'GET') {
+  if (path === 'mu/admin/allusers' && request.method === 'GET') {
     const users = await mu_getUsers(env);
     const month = new Date().toISOString().slice(0, 7);
     const usersWithData = await Promise.all(users.map(async u => {
@@ -6358,7 +6358,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 获取用户详情（含完整 token）---
-  if (path === 'mu/admin/getUser' && request.method === 'GET') {
+  if (path === 'mu/admin/getuser' && request.method === 'GET') {
     const userId = new URL(request.url).searchParams.get('user_id');
     if (!userId) return mu_jsonResponse({ error: '缺少 user_id 参数' }, 400);
     const user = await mu_getUser(env, userId);
@@ -6429,7 +6429,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 查询用户流量 ---
-  if (path === 'mu/admin/userTraffic' && request.method === 'GET') {
+  if (path === 'mu/admin/usertraffic' && request.method === 'GET') {
     const reqUrl = new URL(request.url);
     const userId = reqUrl.searchParams.get('user_id');
     const month = reqUrl.searchParams.get('month') || mu_currentMonth();
@@ -6459,7 +6459,7 @@ async function mu_adminAPI(path, request, env) {
   }
 
   // --- 批量查询所有用户本月流量 ---
-  if (path === 'mu/admin/allTraffic' && request.method === 'GET') {
+  if (path === 'mu/admin/alltraffic' && request.method === 'GET') {
     const month = new URL(request.url).searchParams.get('month') || mu_currentMonth();
     const users = await mu_getUsers(env);
     const result = [];
