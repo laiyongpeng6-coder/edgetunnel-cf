@@ -6110,6 +6110,135 @@ async function mu_recordTraffic(env, uuid, uploadBytes = 0, downloadBytes = 0) {
 
 async function mu_adminAPI(path, request, env) {
   // --- Dashboard HTML ---
+  // --- Dashboard HTML ---
+  if ((path === 'mu/admin' || path === 'mu/admin/') && request.method === 'GET') {
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多用户管理面板</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e3a5f,#0f172a);padding:20px 30px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:22px;color:#38bdf8}
+.header .back{color:#94a3b8;text-decoration:none;font-size:14px}
+.header .back:hover{color:#38bdf8}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155}
+.stat-card .label{color:#94a3b8;font-size:13px;margin-bottom:4px}
+.stat-card .value{font-size:28px;font-weight:700;color:#38bdf8}
+.toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.toolbar input{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:14px;flex:1;min-width:200px}
+.toolbar input:focus{outline:none;border-color:#38bdf8}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:#3b82f6;color:#fff}
+.btn-primary:hover{background:#2563eb}
+.btn-danger{background:#ef4444;color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-success{background:#22c55e;color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px}
+table{width:100%;border-collapse:collapse;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155}
+th{background:#0f172a;color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;padding:14px 16px;text-align:left}
+td{padding:12px 16px;border-top:1px solid #1e293b;font-size:14px}
+tr:hover{background:#1e3a5f20}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-active{background:#22c55e20;color:#4ade80}
+.badge-disabled{background:#ef444420;color:#f87171}
+.traffic-bar{background:#334155;border-radius:4px;height:6px;overflow:hidden;width:120px;display:inline-block;vertical-align:middle;margin-left:8px}
+.traffic-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#38bdf8)}
+.token-cell{font-family:monospace;font-size:12px;color:#64748b;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uuid-cell{font-family:monospace;font-size:12px;color:#94a3b8}
+.actions{display:flex;gap:6px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:1000;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:#1e293b;border-radius:16px;padding:30px;width:90%;max-width:500px;border:1px solid #334155}
+.modal h2{font-size:18px;margin-bottom:20px;color:#38bdf8}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;color:#94a3b8;margin-bottom:6px}
+.form-group input{width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:14px}
+.form-group input:focus{outline:none;border-color:#38bdf8}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.toast{position:fixed;top:20px;right:20px;background:#22c55e;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;z-index:2000;display:none}
+.toast.show{display:block}
+.toast.error{background:#ef4444}
+.empty{text-align:center;padding:60px;color:#64748b}
+.uuid-cell,.token-cell{word-break:break-all;white-space:normal}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>多用户订阅管理</h1>
+  <a href="/admin" class="back">返回管理员面板</a>
+</div>
+<div class="container">
+  <div class="stats">
+    <div class="stat-card"><div class="label">总用户数</div><div class="value" id="statTotal">-</div></div>
+    <div class="stat-card"><div class="label">活跃用户</div><div class="value" id="statActive">-</div></div>
+    <div class="stat-card"><div class="label">本月已用流量</div><div class="value" id="statUsed">-</div></div>
+    <div class="stat-card"><div class="label">总分配流量</div><div class="value" id="statTraffic">-</div></div>
+  </div>
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="搜索用户名..." oninput="filterUsers()">
+    <button class="btn btn-primary" onclick="showCreateModal()">+ 创建用户</button>
+    <button class="btn btn-success" onclick="loadUsers()">刷新</button>
+  </div>
+  <table>
+    <thead><tr><th>用户名</th><th>UUID</th><th>Token</th><th>流量</th><th>到期时间</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody id="userTable"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
+  </table>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modalTitle">创建用户</h2>
+    <input type="hidden" id="editUserId">
+    <div class="form-group"><label>用户名</label><input type="text" id="inputName" placeholder="输入用户名"></div>
+    <div class="form-group"><label>月流量限制 (GB, 0=无限)</label><input type="number" id="inputTraffic" value="0" min="0"></div>
+    <div class="form-group"><label>到期天数 (0=永不过期)</label><input type="number" id="inputDays" value="0" min="0"></div>
+    <div class="modal-actions">
+      <button class="btn" style="background:#334155;color:#e2e8f0" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="modalSubmit" onclick="submitUser()">创建</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width:600px">
+    <h2 id="detailTitle">用户详情</h2>
+    <div id="detailContent"></div>
+    <div class="modal-actions">
+      <button class="btn" style="background:#334155;color:#e2e8f0" onclick="document.getElementById('detailModal').classList.remove('active')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var allUsers=[];
+function toast(m,e){var t=document.getElementById("toast");t.textContent=m;t.className="toast show"+(e?" error":"");setTimeout(function(){t.className="toast"},3000)}
+function fmtBytes(b){if(!b)return"0 B";var u=["B","KB","MB","GB","TB"];var i=Math.floor(Math.log(b)/Math.log(1024));return(b/Math.pow(1024,i)).toFixed(1)+" "+u[i]}
+function fmtDate(d){if(!d)return"永不过期";return new Date(d).toLocaleDateString("zh-CN")}
+function filterUsers(){var q=document.getElementById("searchInput").value.toLowerCase();renderTable(allUsers.filter(function(u){return u.name.toLowerCase().includes(q)}))}
+function renderTable(users){var t=document.getElementById("userTable");if(!users||!users.length){t.innerHTML='<tr><td colspan="7" class="empty">暂无用户</td></tr>';return}var h="";users.forEach(function(u){var used=u.used_bytes||0;var total=u.monthly_bytes||0;var pct=total>0?Math.min(100,used/total*100).toFixed(0):0;var badge=u.enabled!==false?'<span class="badge badge-active">正常</span>':'<span class="badge badge-disabled">禁用</span>';var tf=total>0?fmtBytes(used)+"/"+fmtBytes(total)+'<div class="traffic-bar"><div class="traffic-fill" style="width:'+pct+'%"></div></div>':fmtBytes(used)+" (无限)";h+='<tr><td><strong>'+u.name+'</strong></td><td class="uuid-cell">'+(u.uuid||"").substring(0,8)+'...</td><td class="token-cell">'+u.token+"</td><td>"+tf+"</td><td>"+fmtDate(u.expires_at)+"</td><td>"+badge+'</td><td class="actions"><button class="btn btn-sm btn-primary" onclick="showDetail(\''+u.id+'\')">详情</button> <button class="btn btn-sm btn-danger" onclick="deleteUser(\''+u.id+"','"+u.name+'\')">删除</button></td></tr>'});t.innerHTML=h}
+function updateStats(users){document.getElementById("statTotal").textContent=users.length;document.getElementById("statActive").textContent=users.filter(function(u){return u.enabled!==false}).length;var ut=0;users.forEach(function(u){ut+=u.used_bytes||0});document.getElementById("statUsed").textContent=fmtBytes(ut);var tt=0;users.forEach(function(u){tt+=u.monthly_bytes||0});document.getElementById("statTraffic").textContent=tt>0?fmtBytes(tt):"无限"}
+async function loadUsers(){try{var r=await fetch("/mu/admin/allusers");var d=await r.json();if(d.success){allUsers=d.users||[];renderTable(allUsers);updateStats(allUsers)}else{toast("加载失败",true)}}catch(e){toast("网络错误: "+e.message,true)}}
+function showCreateModal(){document.getElementById("modalTitle").textContent="创建用户";document.getElementById("editUserId").value="";document.getElementById("inputName").value="";document.getElementById("inputTraffic").value="0";document.getElementById("inputDays").value="0";document.getElementById("modalSubmit").textContent="创建";document.getElementById("modal").classList.add("active")}
+function closeModal(){document.getElementById("modal").classList.remove("active")}
+async function submitUser(){var name=document.getElementById("inputName").value.trim();if(!name){toast("请输入用户名",true);return}var traffic=parseInt(document.getElementById("inputTraffic").value)||0;var days=parseInt(document.getElementById("inputDays").value)||0;var expiresAt=null;if(days>0){var d=new Date();d.setDate(d.getDate()+days);expiresAt=d.toISOString()}var editId=document.getElementById("editUserId").value;try{var url,body;if(editId){url="/mu/admin/updateuser/"+editId;body=JSON.stringify({name:name,monthly_bytes:traffic*1024*1024*1024,expires_at:expiresAt})}else{url="/mu/admin/createuser";body=JSON.stringify({name:name,monthly_gb:traffic,expires_at:expiresAt})}var r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:body});var d=await r.json();if(d.success||d.user){toast(editId?"已更新":"已创建");closeModal();loadUsers()}else{toast(d.error||"操作失败",true)}}catch(e){toast("网络错误",true)}}
+async function deleteUser(id,name){if(!confirm('确定删除用户 "'+name+'"？'))return;try{var r=await fetch("/mu/admin/deleteuser/"+id,{method:"POST"});var d=await r.json();if(d.success){toast("已删除");loadUsers()}else{toast(d.error||"删除失败",true)}}catch(e){toast("网络错误",true)}}
+async function showDetail(id){try{var r=await fetch("/mu/admin/getuser/"+id);var d=await r.json();var u=d.data||d;var subUrl=location.origin+"/sub/"+u.token;var statusUrl=location.origin+"/mu/status/"+u.token;var h='<div style="display:grid;gap:12px">';h+='<div style="display:flex;justify-content:space-between"><span style="color:#94a3b8">用户名</span><span>'+u.name+"</span></div>";h+='<div style="display:flex;justify-content:space-between"><span style="color:#94a3b8">UUID</span><span class="uuid-cell">'+u.uuid+"</span></div>";h+='<div style="display:flex;justify-content:space-between"><span style="color:#94a3b8">Token</span><span class="token-cell">'+u.token+"</span></div>";h+='<div style="display:flex;justify-content:space-between"><span style="color:#94a3b8">到期时间</span><span>'+fmtDate(u.expires_at)+"</span></div>";h+='<div style="display:flex;justify-content:space-between"><span style="color:#94a3b8">月流量</span><span>'+(u.monthly_bytes>0?fmtBytes(u.monthly_bytes):"无限")+"</span></div>";h+='<div style="display:flex;justify-content:space-between"><span style="color:#94a3b8">已用流量</span><span>'+fmtBytes(u.used_bytes||0)+'</span></div>';h+='<hr style="border-color:#334155">';h+='<div><span style="color:#94a3b8">订阅链接</span><div style="margin-top:6px;display:flex;gap:8px;align-items:center"><input value="'+subUrl+'" readonly style="flex:1;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:12px;font-family:monospace"><button class="btn btn-sm btn-primary" onclick="navigator.clipboard.writeText(\''+subUrl+'\');toast(\'已复制\')">复制</button></div></div>';h+='<div><span style="color:#94a3b8">状态页</span><div style="margin-top:6px"><a href="'+statusUrl+'" target="_blank" style="color:#38bdf8;font-size:13px">'+statusUrl+'</a></div></div>';h+="</div>";document.getElementById("detailTitle").textContent="用户详情 - "+u.name;document.getElementById("detailContent").innerHTML=h;document.getElementById("detailModal").classList.add("active")}catch(e){toast("网络错误",true)}}
+loadUsers();
+</script>
+</body>
+</html>`;
+    return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  }
+
+
   // --- All Users (full data for dashboard) ---
   if (path === 'mu/admin/allUsers' && request.method === 'GET') {
     const users = await mu_getUsers(env);
