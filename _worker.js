@@ -199,7 +199,39 @@ export default {
 			const _wsClientUUID = (request.headers.get('sec-websocket-protocol') || '').replace(/[^a-fA-F0-9-]/g, '').length === 36 ? request.headers.get('sec-websocket-protocol').replace(/[^a-fA-F0-9-]/g, '') : null;
 			const _lookupUUID = _wsClientUUID || userID;
 			try { const _muR2 = await env.KV.get('mu:users'); const _muU2 = _muR2 ? JSON.parse(_muR2) : []; const _mu2 = _muU2.find(u => u.uuid === _lookupUUID); if (_mu2) _muUserId = _mu2.id; } catch(e) {}
-			return wrapTrafficCount(await 处理WS请求(request, userID, url), _muUserId, env, ctx);
+			// WS traffic counting - wrap clientSock send
+			const _wsResp = await 处理WS请求(request, userID, url);
+			if (_wsResp && _muUserId && env.KV) {
+				const _wsSocket = _wsResp.webSocket;
+				if (_wsSocket) {
+					let _wsUpload = 0, _wsDownload = 0;
+					const _origSend = _wsSocket.send.bind(_wsSocket);
+					_wsSocket.send = function(data) { _wsDownload += (data.byteLength || data.length || 0); return _origSend(data); };
+					const _origAccept = _wsSocket.accept.bind(_wsSocket);
+					_wsSocket.accept = function() {
+						const result = _origAccept();
+						if (result && result.onmessage) {
+							const _origOnMsg = result.onmessage;
+							result.onmessage = function(evt) { _wsUpload += (evt.data?.byteLength || evt.data?.length || 0); _origOnMsg.call(this, evt); };
+						}
+						return result;
+					};
+					_wsSocket.addEventListener('close', () => {
+						if (_wsUpload + _wsDownload > 0) ctx.waitUntil((async () => {
+							try {
+								const month = new Date().toISOString().slice(0, 7);
+								const key = 'mu:traffic:' + _muUserId + ':' + month;
+								const raw = await env.KV.get(key);
+								const t = raw ? JSON.parse(raw) : { upload: 0, download: 0 };
+								t.upload += _wsUpload;
+								t.download += _wsDownload;
+								await env.KV.put(key, JSON.stringify(t));
+							} catch(e) {}
+						})());
+					};
+				}
+			}
+			return _wsResp;
 		} else if (管理员密码 && !访问路径.startsWith('admin/') && !访问路径.startsWith('mu/') && 访问路径 !== 'login' && request.method === 'POST') {// gRPC/XHTTP代理
 			await 反代参数获取(url, userID);
 			const referer = request.headers.get('Referer') || '';
