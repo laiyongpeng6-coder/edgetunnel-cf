@@ -195,8 +195,11 @@ export default {
 			await 反代参数获取(url, userID);
 			log(`[WebSocket] 命中请求: ${url.pathname}${url.search}`);
 			let _muUserId = null;
-          try { const _muR2 = await env.KV.get('mu:users'); const _muU2 = _muR2 ? JSON.parse(_muR2) : []; const _mu2 = _muU2.find(u => u.uuid === userID); if (_mu2) _muUserId = _mu2.id; } catch(e) {}
-          return wrapTrafficCount(await 处理WS请求(request, userID, url), _muUserId, env, ctx);
+			// Extract client UUID from WebSocket protocol header for multi-user
+			const _wsClientUUID = (request.headers.get('sec-websocket-protocol') || '').replace(/[^a-fA-F0-9-]/g, '').length === 36 ? request.headers.get('sec-websocket-protocol').replace(/[^a-fA-F0-9-]/g, '') : null;
+			const _lookupUUID = _wsClientUUID || userID;
+			try { const _muR2 = await env.KV.get('mu:users'); const _muU2 = _muR2 ? JSON.parse(_muR2) : []; const _mu2 = _muU2.find(u => u.uuid === _lookupUUID); if (_mu2) _muUserId = _mu2.id; } catch(e) {}
+			return wrapTrafficCount(await 处理WS请求(request, userID, url), _muUserId, env, ctx);
 		} else if (管理员密码 && !访问路径.startsWith('admin/') && !访问路径.startsWith('mu/') && 访问路径 !== 'login' && request.method === 'POST') {// gRPC/XHTTP代理
 			await 反代参数获取(url, userID);
 			const referer = request.headers.get('Referer') || '';
@@ -204,13 +207,31 @@ export default {
 			if (!命中XHTTP特征 && contentType.startsWith('application/grpc')) {
 				log(`[gRPC] 命中请求: ${url.pathname}${url.search}`);
 				let _muUserId2 = null;
-            try { const _muR3 = await env.KV.get('mu:users'); const _muU3 = _muR3 ? JSON.parse(_muR3) : []; const _mu3 = _muU3.find(u => u.uuid === userID); if (_mu3) _muUserId2 = _mu3.id; } catch(e) {}
-            return wrapTrafficCount(await 处理gRPC请求(wrapUploadCount(request, _muUserId2, env, ctx), userID), _muUserId2, env, ctx);
+				// Try to extract client UUID from gRPC early data
+				const _grpcBody = request.body ? await request.clone().arrayBuffer() : null;
+				let _grpcClientUUID = null;
+				if (_grpcBody && _grpcBody.byteLength >= 18) {
+					const _grpcBytes = new Uint8Array(_grpcBody);
+					const _uuidBytes = _grpcBytes.slice(1, 17);
+					_grpcClientUUID = [..._uuidBytes].map(b => b.toString(16).padStart(2, '0')).join('').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
+				}
+				const _lookupUUID2 = _grpcClientUUID || userID;
+				try { const _muR3 = await env.KV.get('mu:users'); const _muU3 = _muR3 ? JSON.parse(_muR3) : []; const _mu3 = _muU3.find(u => u.uuid === _lookupUUID2); if (_mu3) _muUserId2 = _mu3.id; } catch(e) {}
+				return wrapTrafficCount(await 处理gRPC请求(wrapUploadCount(request, _muUserId2, env, ctx), userID), _muUserId2, env, ctx);
 			}
 			log(`[XHTTP] 命中请求: ${url.pathname}${url.search}`);
 			let _muUserId3 = null;
-              try { const _muR4 = await env.KV.get('mu:users'); const _muU4 = _muR4 ? JSON.parse(_muR4) : []; const _mu4 = _muU4.find(u => u.uuid === userID); if (_mu4) _muUserId3 = _mu4.id; } catch(e) {}
-              return wrapTrafficCount(await 处理XHTTP请求(wrapUploadCount(request, _muUserId3, env, ctx), userID), _muUserId3, env, ctx);
+			// Try to extract client UUID from XHTTP early data
+			const _xhttpBody = request.body ? await request.clone().arrayBuffer() : null;
+			let _xhttpClientUUID = null;
+			if (_xhttpBody && _xhttpBody.byteLength >= 18) {
+				const _xhttpBytes = new Uint8Array(_xhttpBody);
+				const _uuidBytes3 = _xhttpBytes.slice(1, 17);
+				_xhttpClientUUID = [..._uuidBytes3].map(b => b.toString(16).padStart(2, '0')).join('').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
+			}
+			const _lookupUUID3 = _xhttpClientUUID || userID;
+			try { const _muR4 = await env.KV.get('mu:users'); const _muU4 = _muR4 ? JSON.parse(_muR4) : []; const _mu4 = _muU4.find(u => u.uuid === _lookupUUID3); if (_mu4) _muUserId3 = _mu4.id; } catch(e) {}
+			return wrapTrafficCount(await 处理XHTTP请求(wrapUploadCount(request, _muUserId3, env, ctx), userID), _muUserId3, env, ctx);
 		} else {
 			if (url.protocol === 'http:') return Response.redirect(url.href.replace(`http://${url.hostname}`, `https://${url.hostname}`), 301);
 			if (!管理员密码) return fetch(Pages静态页面 + '/noADMIN').then(r => { const headers = new Headers(r.headers); headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); headers.set('Pragma', 'no-cache'); headers.set('Expires', '0'); return new Response(r.body, { status: 404, statusText: r.statusText, headers }) });
