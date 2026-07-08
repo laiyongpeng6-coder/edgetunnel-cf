@@ -648,7 +648,12 @@ export default {
 							订阅内容 = await Singbox订阅配置文件热补丁(订阅内容, config_JSON);
 							responseHeaders["content-type"] = 'application/json; charset=utf-8';
 						} else if (订阅类型 === 'clash') {
-							订阅内容 = Clash订阅配置文件热补丁(订阅内容, config_JSON);
+							const localYaml = vlessToClashYaml(订阅内容);
+							if (localYaml) {
+								订阅内容 = localYaml;
+							} else {
+								订阅内容 = Clash订阅配置文件热补丁(订阅内容, config_JSON);
+							}
 							responseHeaders["content-type"] = 'application/x-yaml; charset=utf-8';
 						}
 						if (多用户UUID && env.KV && typeof env.KV.get === 'function') { try { const _muR = await env.KV.get('mu:users'); const _muU = _muR ? JSON.parse(_muR) : []; const _mu = _muU.find(u => u.uuid === 多用户UUID); if (_mu) { const _m = new Date().toISOString().slice(0, 7); const _tR = await env.KV.get('mu:traffic:' + _mu.id + ':' + _m); const _t = _tR ? JSON.parse(_tR) : { upload: 0, download: 0 }; const _u = _t.upload + _t.download; const _tot = _mu.monthly_bytes || 0; const _exp = _mu.expires_at ? Math.floor(new Date(_mu.expires_at).getTime() / 1000) : 4102329600; responseHeaders['Subscription-Userinfo'] = `upload=${_u}; download=0; total=${_tot}; expire=${_exp}`; } } catch(e) {} }
