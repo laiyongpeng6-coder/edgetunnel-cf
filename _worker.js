@@ -136,9 +136,7 @@ function vlessToClashYaml(vlessLinks) {
   });
   yaml += 'proxy-groups:\n  - name: AUTO\n    type: url-test\n    proxies:\n';
   names.forEach(function(n) { yaml += '      - ' + JSON.stringify(n) + '\n'; });
-  yaml += '    url: http://www.gstatic.com/generate_204\n    interval: 300\n';
-  yaml += '  - name: GLOBAL\n    type: select\n    proxies:\n      - AUTO\n';
-  names.forEach(function(n) { yaml += '      - ' + JSON.stringify(n) + '\n'; });
+  yaml += '    url: http://www.gstatic.com/generate_204\n    interval: 300\n';  names.forEach(function(n) { yaml += '      - ' + JSON.stringify(n) + '\n'; });
   yaml += 'rules:\n  - MATCH,GLOBAL\n';
   return yaml;
 }
